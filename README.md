@@ -6,7 +6,11 @@ This repository contains a selection of tools I've made that have been fairly he
 
 Changes your MAC address on the specified interface
 
-## PyCrawler
+## NetworkScanner
+
+Scans for other devices on your network
+
+## WebsiteCrawler
 
 Simple Python code to find all of the subdirectories on a website
 
