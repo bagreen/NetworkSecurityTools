@@ -1,4 +1,4 @@
-# PyBuster
+# PyCrawler
 
 Simple Python code to find all of the subdirectories on a website
 
