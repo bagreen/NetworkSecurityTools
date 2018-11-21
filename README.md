@@ -12,7 +12,7 @@ Scans for other devices on your network
 
 ## WebsiteCrawler
 
-Simple Python code to find all of the subdirectories on a website
+Simple Python code to find all of the subdirectories on a website or to crawl the website and find all links in it
 
 ### TO DO
 Need to learn how to multithread this, along with options for multiple wordlists
