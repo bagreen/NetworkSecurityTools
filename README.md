@@ -10,6 +10,10 @@ Changes your MAC address on the specified interface
 
 Scans for other devices on your network
 
+## TryLogins
+
+Tries various passwords and usernames to login to a website
+
 ## WebsiteCrawler
 
 Simple Python code to find all of the subdirectories on a website or to crawl the website and find all links in it
