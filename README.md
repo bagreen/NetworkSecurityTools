@@ -2,9 +2,29 @@
 
 This repository contains a selection of tools I've made that have been fairly helpful (at least to me).
 
+## CaptureWiFiHandshake
+
+Use aircrack-ng to capture WiFi handshake
+
+### TODO
+
+Need to figure out output from commands
+
 ## ChangeMAC
 
 Changes your MAC address on the specified interface
+
+## Decoder
+
+Works through an input and tries to decode it
+
+### TODO
+
+Add more decodings
+
+## Keylogger
+
+Captures the keystrokes of the target computer
 
 ## NetworkScanner
 
