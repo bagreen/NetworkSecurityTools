@@ -32,11 +32,8 @@ def findSubdirectories(url):
         for line in ifile:
             line = line.rstrip()
             subURL = url + '/' + line
-            #print("testing " + subURL)
-
             webRequest = requests.get(subURL)
-
-            print('Checking', subURL)
+            print('Testing', subURL)
 
             if webRequest.status_code < 400:
                 print('FOUND ', subURL)
