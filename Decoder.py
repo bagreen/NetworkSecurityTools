@@ -1,11 +1,18 @@
-# want to automate ways of cracking ciphers on this list
-# https://en.wikipedia.org/wiki/Classical_cipher
+"""
+TODO: polyalphabetic, route cipher, two square, four square, enigma, scytale, vigenere
+
+want to automate ways of cracking ciphers on this list
+https://en.wikipedia.org/wiki/Classical_cipher
+
+vigenere decoder
+https://simonsingh.net/The_Black_Chamber/vigenere_cracking_tool.html
+
+"""
 
 import base64
 from collections import Counter
 import re
 import string
-
 
 # HELPING DICTIONARIES
 alphaNum = {'A': '1', 'B': '2', 'C': '3', 'D': '4', 'E': '5', 'F': '6',
@@ -37,18 +44,17 @@ morseEnglish = {'.-...': '&', '--..--': ',', '....-': '4', '.....': '5',
                 '.-.-.': '+', '-.-.': 'C', '---...': ':', '-.--': 'Y', '-': 'T',
                 '.--.-.': '@', '...-..-': '$', '.---': 'J', '-----': '0', '----.': '9',
                 '.-..-.': '\"', '-.--.': '(', '---..': '8', '...--': '3'}
-
 englishDictionary = []
-
 with open('anglo-saxon-surnames', 'r') as handle:
     for line in handle:
         englishDictionary.append(line.strip().upper())
 englishDictionary.sort(key=lambda item: (len(item), item))
+english_frequency = ['E', 'T', 'A', 'O', 'I', 'N', 'S', 'H', 'R', 'W', 'D', 'L', 'Y', 'K', 'C', 'U', 'M', 'F', 'G', 'P', 'B', 'V', 'J', 'X', 'Q', 'Z']
 
 
 # HELPING METHODS
 def frequency_analysis(encoded):
-    encoded_list = Counter(encoded.upper()).most_common(100)
+    encoded_list = Counter(encoded).most_common(100)
     frequency_list = []
 
     for frequency in range(0, len(encoded_list)):
@@ -105,92 +111,6 @@ def word_check(word):
 
 
 # DECODERS
-# BASES
-def base16_decoder(encoded):  # base16/hexadecimal
-
-    try:
-        decoded = base64.b16decode(encoded)
-        print('BASE16')
-        print('Decoded :', str(decoded)[2:len(decoded) + 2])
-        print()
-    except base64.binascii.Error:
-        pass
-def base32_decoder(encoded):
-    try:
-        decoded = base64.b32decode(encoded)
-        print('BASE32')
-        print('Decoded :', str(decoded)[2:len(decoded) + 2])
-        print()
-    except base64.binascii.Error:
-        pass
-def base64_decoder(encoded):  # base64/radix64
-    try:
-        decoded = base64.b64decode(encoded, validate=True)
-        print('BASE64')
-        print('Decoded :', str(decoded)[2:len(decoded) + 2])
-        print()
-    except base64.binascii.Error:
-        pass
-def base85_decoder(encoded):  # base85/ascii85
-    try:
-        decoded = base64.a85decode(encoded)
-        print('BASE85')
-        print('Decoded :', str(decoded)[2:len(decoded) + 2])
-        print()
-    except base64.binascii.Error or ValueError:
-        pass
-
-
-# NUMBER BASE
-def binary(encoded):
-    encoded_list = encoded.split()
-    decoded = ''
-
-    try:
-        for character in encoded_list:
-            character = int(character, 2)
-            decoded = decoded + chr(character)
-
-        print('BINARY')
-        print('Decoded :', decoded)
-        print()
-    except ValueError:
-        pass
-def octal(encoded):
-    encoded_list = encoded.split()
-    decoded = ''
-
-    try:
-        for character in encoded_list:
-            character = int(character, 8)
-            decoded = decoded + chr(character)
-
-        print('OCTAL')
-        print('Decoded :', decoded)
-        print()
-    except OverflowError:
-        pass
-    except ValueError:
-        pass
-def hexadecimal(encoded):
-    encoded_list = encoded.split()
-    decoded = ''
-
-    try:
-        for character in encoded_list:
-            character = int(character, 16)
-            decoded = decoded + chr(character)
-
-        print('HEXADECIMAL')
-        print('Decoded :', decoded)
-        print()
-    except OverflowError:
-        pass
-    except ValueError:
-        pass
-
-
-# OTHERS
 def bacon(encoded):
     if len(Counter(encoded).most_common(3)) is 2:
         first_most_common = Counter(encoded).most_common(2)[0][0]
@@ -241,11 +161,57 @@ def bacon(encoded):
             if len(decoded22) > 0:
                 print('Encoding 2, Cipher 2 :', decoded22)
             print()
+def base_decoder(encoded):
+    # base16/hexadecimal
+    try:
+        decoded = base64.b16decode(encoded)
+        print('BASE16')
+        print('Decoded :', str(decoded)[2:len(decoded) + 2])
+        print()
+    except base64.binascii.Error:
+        pass
+
+    # base32
+    try:
+        decoded = base64.b32decode(encoded)
+        print('BASE32')
+        print('Decoded :', str(decoded)[2:len(decoded) + 2])
+        print()
+    except base64.binascii.Error:
+        pass
+
+    # base64/radix64
+    try:
+        decoded = base64.b64decode(encoded, validate=True)
+        print('BASE64')
+        print('Decoded :', str(decoded)[2:len(decoded) + 2])
+        print()
+    except base64.binascii.Error:
+        pass
+
+    # base85/ascii85
+    try:
+        decoded = base64.a85decode(encoded)
+        print('BASE85')
+        print('Decoded :', str(decoded)[2:len(decoded) + 2])
+        print()
+    except base64.binascii.Error or ValueError:
+        pass
 def caesar(encoded):
     print('CAESAR')
     for rotation in range(1, 25):
         print('Rotated', rotation * -1, ':', rotate(encoded.upper(), rotation * -1))
     print()
+def monoalphabetic(encoded):
+    # Need to figure out how to do this better...
+    encoded = encoded.lower()
+
+    frequency_list = frequency_analysis(encoded)
+
+    for letter in range(0, 25):
+        encoded = encoded.replace(frequency_list[letter], english_frequency[letter])
+    print('MONOALPHABETIC')
+    print('Decoded :', encoded)
 def morse_decoder(encoded):
     decoded = ''
 
@@ -256,6 +222,38 @@ def morse_decoder(encoded):
         print('MORSE CODE')
         print('Morse to English :', decoded)
         print()
+def num_base(encoded, bases):
+    for base in bases:
+        encoded_list = []
+
+        if ' ' not in encoded:
+            if base is 2:
+                encoded_list = re.findall('........', encoded)
+            if base is 8:
+                encoded_list = re.findall('...', encoded)
+            if base is 16:
+                encoded_list = re.findall('..', encoded)
+        else:
+            encoded_list = encoded.split()
+        decoded = ''
+
+        try:
+            for character in encoded_list:
+                character = int(character, base)
+                decoded = decoded + chr(character)
+
+            if base is 2:
+                print('BINARY')
+            elif base is 8:
+                print('OCTAL')
+            elif base is 16:
+                print('HEXADECIMAL')
+            print('Decoded :', decoded)
+            print()
+        except OverflowError:
+            pass
+        except ValueError:
+            pass
 def null(encoded):
     # first letter of each word
     first_letters = ''
@@ -330,34 +328,11 @@ def rot13(encoded):
     print('Rotated -13 :', rotate(encoded.upper(), -13))
     print()
 
-
-def monoalphabetic(encoded):
-    encoded_list = encoded.split()
-    smallest_word = encoded_list[0]
-    encoding = ''
-
-    for word in encoded_list:
-        if len(word) < len(smallest_word):
-            smallest_word = word
-
-    for word in englishDictionary:
-        if len(word) is len(smallest_word):
-            encoding = 'test'
-
-
-# polyalphabetic
-# route cipher?  https://en.wikipedia.org/wiki/Transposition_cipher
-# two square
-# four square
-# enigma
-# scytale
-
 '''
 # vigenere
 def vigenere(encoded):
     print('VIGENERE')
-    key = ''
-    solutions = {}
+
     for word in englishDictionary:
         key = re.sub('[\W_]+', '', word)
         if key[:len(encoded)] not in keyList:
@@ -401,11 +376,11 @@ def vigenere(encoded):
     print()
 '''
 
-encodedText = 'Hereupon Legrand arose, with a grave and stately air, and brought me the beetle from a glass case in which it was enclosed. It was a beautiful scarabaeus, and, at that time, unknown to naturalists—of course a great prize in a scientific point of view. There were two round black spots near one extremity of the back, and a long one near the other. The scales were exceedingly hard and glossy, with all the appearance of burnished gold. The weight of the insect was very remarkable, and, taking all things into consideration, I could hardly blame Jupiter for his opinion respecting it.'
+
+encodedText = 'LIVITCSWPIYVEWHEVSRIQMXLEYVEOIEWHRXEXIPFEMVEWHKVSTYLXZIXLIKIIXPIJVSZEYPERRGERIMWQLMGLMXQERIWGPSRIHMXQEREKIETXMJTPRGEVEKEITREWHEXXLEXXMZITWAWSQWXSWEXTVEPMRXRSJGSTVRIEYVIEXCVMUIMWERGMIWXMJMGCSMWXSJOMIQXLIVIQIVIXQSVSTWHKPEGARCSXRWIEVSWIIBXVIZMXFSJXLIKEGAEWHEPSWYSWIWIEVXLISXLIVXLIRGEPIRQIVIIBGIIHMWYPFLEVHEWHYPSRRFQMXLEPPXLIECCIEVEWGISJKTVWMRLIHYSPHXLIQIMYLXSJXLIMWRIGXQEROIVFVIZEVAEKPIEWHXEAMWYEPPXLMWYRMWXSGSWRMHIVEXMSWMGSTPHLEVHPFKPEZINTCMXIVJSVLMRSCMWMSWVIRCIGXMWYMX'
+
 print('Input:', encodedText)
 print()
-
-print(frequency_analysis(encodedText))
 
 # for value in englishDictionary:
 #     print(value)
@@ -417,18 +392,14 @@ print(frequency_analysis(encodedText))
 #     caesar(encodedText)
 #     null(encodedText)
 #     rail(encodedText)
+#     monoalphabetic(encodedText)
 #     morse_encoder(encodedText)
 #     # vigenere(encodedText)
 # elif has_numbers(encodedText) is True and has_letters(encodedText) is False and has_symbols(encodedText) is False:
 #     polybius(encodedText)
 #
-# base16_decoder(encodedText)
-# base32_decoder(encodedText)
-# base64_decoder(encodedText)
-# base85_decoder(encodedText)
-# binary(encodedText)
-# octal(encodedText)
-# hexadecimal(encodedText)
+# base_decoder(encodedText)
 # bacon(encodedText)
 # morse_decoder(encodedText)
 # morse_converter(encodedText)
+# num_base(encodedText, [2, 8, 16])
