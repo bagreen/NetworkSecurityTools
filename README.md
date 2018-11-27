@@ -14,6 +14,10 @@ Need to figure out output from commands
 
 Changes your MAC address on the specified interface
 
+## CrackPDF
+
+Finds the password to a PDF
+
 ## Decoder
 
 Works through an input and tries to decode it
