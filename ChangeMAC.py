@@ -10,6 +10,8 @@ def process_arguments():
 
     parsed = parser.parse_args()
 
+
+
     try:
         return list(vars(parser.parse_args()).values())
     except IOError:
@@ -32,13 +34,31 @@ def get_mac(args):
         print('Could not find original MAC address')
 
 
+def check_arguments(args):
+    check_interface = subprocess.Popen(['ifconfig', args[0]], stderr=subprocess.STDOUT, stdout=subprocess.PIPE)
+    check_interface.communicate()
+
+    if check_interface.returncode != 0:
+        print('Interface is invalid')
+        return False
+    else:
+        check_mac = re.search(r'\w\w:\w\w:\w\w:\w\w:\w\w:\w\w', args[1])
+
+        if not check_mac:
+            print('MAC Address is invalid')
+            return False
+
+    return True
+
+
 arg_results = process_arguments()
 
-original_mac = get_mac(arg_results)
-change_mac(arg_results)
-current_mac = get_mac(arg_results)
+if check_arguments(arg_results) is True:
+    original_mac = get_mac(arg_results)
+    change_mac(arg_results)
+    current_mac = get_mac(arg_results)
 
-if current_mac == arg_results[1]:
-    print('Changed MAC address on', arg_results[0], 'from', original_mac, 'to', current_mac)
-else:
-    print('Unknown error!')
+    if current_mac == arg_results[1]:
+        print('Changed MAC address on', arg_results[0], 'from', original_mac, 'to', current_mac)
+    else:
+        print('Unknown error!')
