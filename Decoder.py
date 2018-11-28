@@ -1,5 +1,6 @@
 """
-TODO: polyalphabetic, route cipher, two square, four square, enigma, scytale, vigenere
+TODO: ADD polyalphabetic, route cipher, two square, four square, enigma, scytale, vigenere
+TODO: FIX monoalphabetic, frequency_analysis
 
 want to automate ways of cracking ciphers on this list
 https://en.wikipedia.org/wiki/Classical_cipher
@@ -9,65 +10,49 @@ https://simonsingh.net/The_Black_Chamber/vigenere_cracking_tool.html
 
 """
 
-import base64
 from collections import Counter
+import argparse
+import base64
 import re
-import string
 
 # HELPING DICTIONARIES
-alphaNum = {'A': '1', 'B': '2', 'C': '3', 'D': '4', 'E': '5', 'F': '6',
-            'G': '7', 'H': '8', 'I': '9', 'J': '10', 'K': '11', 'L': '12',
-            'M': '13', 'N': '14', 'O': '15', 'P': '16', 'Q': '17', 'R': '18',
-            'S': '19', 'T': '20', 'U': '21', 'V': '22', 'W': '23', 'X': '24',
-            'Y': '25', 'Z': '26'}
-baconEnglish1 = {'aaaaa': 'A', 'aaaab': 'B', 'aaaba': 'C', 'aaabb': 'D', 'aabaa': 'E',
-                 'aabab': 'F', 'aabba': 'G', 'aabbb': 'H', 'abaaa': 'I',
-                 'abaab': 'K', 'ababa': 'L', 'ababb': 'M', 'abbaa': 'N', 'abbab': 'O',
-                 'abbba': 'P', 'abbbb': 'Q', 'baaaa': 'R', 'baaab': 'S', 'baaba': 'T',
-                 'baabb': 'U', 'babaa': 'W', 'babab': 'X', 'babba': 'Y',
-                 'babbb': 'Z'}
-baconEnglish2 = {'aaaaa': 'A', 'aaaab': 'B', 'aaaba': 'C', 'aaabb': 'D', 'aabaa': 'E',
-                 'aabab': 'F', 'aabba': 'G', 'aabbb': 'H', 'abaaa': 'I', 'abaab': 'J',
-                 'ababa': 'K', 'ababb': 'L', 'abbaa': 'M', 'abbab': 'N', 'abbba': 'O',
-                 'abbbb': 'P', 'baaaa': 'Q', 'baaab': 'R', 'baaba': 'S', 'baabb': 'T',
-                 'babaa': 'U', 'babab': 'V', 'babba': 'W', 'babbb': 'X', 'bbaaa': 'Y',
-                 'bbaab': 'Z'}
-morseEnglish = {'.-...': '&', '--..--': ',', '....-': '4', '.....': '5',
-                '...---...': 'SOS', '-...': 'B', '-..-': 'X', '.-.': 'R',
-                '.--': 'W', '..---': '2', '.-': 'A', '..': 'I', '..-.': 'F',
-                '.----': '1', '-.-': 'K', '-..': 'D', '-....': '6', '-...-': '=',
-                '.': 'E', '.-..': 'L', '...': 'S', '..-': 'U', '..--..': '?',
-                '---': 'O', '.--.': 'P', '.-.-.-': '.', '--': 'M', '-.': 'N',
-                '....': 'H', '.----.': '\'', '...-': 'V', '--...': '7',
-                '-.-.-.': ';', '-....-': '-', '..--.-': '_', '-.--.-': ')',
-                '-.-.--': '!', '--.': 'G', '--.-': 'Q', '--..': 'Z', '-..-.': '/',
-                '.-.-.': '+', '-.-.': 'C', '---...': ':', '-.--': 'Y', '-': 'T',
-                '.--.-.': '@', '...-..-': '$', '.---': 'J', '-----': '0', '----.': '9',
-                '.-..-.': '\"', '-.--.': '(', '---..': '8', '...--': '3'}
-englishDictionary = []
-with open('anglo-saxon-surnames', 'r') as handle:
-    for line in handle:
-        englishDictionary.append(line.strip().upper())
-englishDictionary.sort(key=lambda item: (len(item), item))
-english_frequency = ['E', 'T', 'A', 'O', 'I', 'N', 'S', 'H', 'R', 'W', 'D', 'L', 'Y', 'K', 'C', 'U', 'M', 'F', 'G', 'P', 'B', 'V', 'J', 'X', 'Q', 'Z']
+letters_to_numbers = {'A': '1', 'B': '2', 'C': '3', 'D': '4', 'E': '5', 'F': '6',
+                      'G': '7', 'H': '8', 'I': '9', 'J': '10', 'K': '11', 'L': '12',
+                      'M': '13', 'N': '14', 'O': '15', 'P': '16', 'Q': '17', 'R': '18',
+                      'S': '19', 'T': '20', 'U': '21', 'V': '22', 'W': '23', 'X': '24',
+                      'Y': '25', 'Z': '26'}
+morse_to_english = {'.-...': '&', '--..--': ',', '....-': '4', '.....': '5',
+                    '...---...': 'SOS', '-...': 'B', '-..-': 'X', '.-.': 'R',
+                    '.--': 'W', '..---': '2', '.-': 'A', '..': 'I', '..-.': 'F',
+                    '.----': '1', '-.-': 'K', '-..': 'D', '-....': '6', '-...-': '=',
+                    '.': 'E', '.-..': 'L', '...': 'S', '..-': 'U', '..--..': '?',
+                    '---': 'O', '.--.': 'P', '.-.-.-': '.', '--': 'M', '-.': 'N',
+                    '....': 'H', '.----.': '\'', '...-': 'V', '--...': '7',
+                    '-.-.-.': ';', '-....-': '-', '..--.-': '_', '-.--.-': ')',
+                    '-.-.--': '!', '--.': 'G', '--.-': 'Q', '--..': 'Z', '-..-.': '/',
+                    '.-.-.': '+', '-.-.': 'C', '---...': ':', '-.--': 'Y', '-': 'T',
+                    '.--.-.': '@', '...-..-': '$', '.---': 'J', '-----': '0', '----.': '9',
+                    '.-..-.': '\"', '-.--.': '(', '---..': '8', '...--': '3'}
+english_dictionary = []
+english_frequency = ['E', 'T', 'A', 'O', 'I', 'N', 'S', 'H', 'R', 'W', 'D', 'L', 'Y', 'K', 'C', 'U', 'M', 'F', 'G', 'P',
+                     'B', 'V', 'J', 'X', 'Q', 'Z']
 
 
 # HELPING METHODS
+def dictionary():
+    with open('anglo-saxon-surnames', 'r') as handle:
+        for line in handle:
+            english_dictionary.append(line.strip().upper())
+    english_dictionary.sort(key=lambda item: (len(item), item))
 def frequency_analysis(encoded):
     encoded_list = Counter(encoded).most_common(100)
     frequency_list = []
 
     for frequency in range(0, len(encoded_list)):
-        if has_letters(encoded_list[frequency][0]) is True:
+        if re.search('[a-zA-Z]', encoded_list[frequency][0]):
             frequency_list.append(encoded_list[frequency][0])
 
     return frequency_list
-def has_letters(encoded):
-    return any(char.isalpha() for char in encoded)
-def has_numbers(encoded):
-    return any(char.isdigit() for char in encoded)
-def has_symbols(encoded):
-    return any(char in set(string.punctuation.replace("_", "")) for char in encoded)
 def morse_converter(encoded):
     if len(Counter(encoded).most_common(3)) is 2:
         first_most_common = Counter(encoded).most_common(2)[0][0]
@@ -76,42 +61,63 @@ def morse_converter(encoded):
         decoded1 = encoded.replace(first_most_common, '.').replace(second_most_common, '-')
         decoded2 = encoded.replace(first_most_common, '-').replace(second_most_common, '.')
 
+        print()
         print('MORSE CODE CONVERTER')
         print('Output 1 :', decoded1)
         print('Output 2 :', decoded2)
-        print()
 def morse_encoder(encoded):
     decoded = ''
-    english_to_morse = {z: x for x, z in morseEnglish.items()}
+    english_to_morse = {z: x for x, z in morse_to_english.items()}
 
     for x in list(encoded.upper()):
         if x is not ' ':
             decoded = decoded + str(english_to_morse.get(x) + ' ')
+    print()
     print('MORSE CODE ENCODER')
     print('English to Morse :', decoded)
-    print()
+def process_arguments():
+    parser = argparse.ArgumentParser(description='Attempts to decrypt input in many different encryption types')
+    parser.add_argument('-i', '--input', help='The information you want to decrypt', default='')
+
+    try:
+        return list(vars(parser.parse_args()).values())
+    except IOError:
+        parser.error('Error')
 def rotate(encoded, rotation):
     decoded = ''
-    num_alpha = {z: x for x, z in alphaNum.items()}
+    num_alpha = {z: x for x, z in letters_to_numbers.items()}
 
-    for character in list(encoded):
-        if character is ' ':
-            decoded = decoded + ' '
-        else:
-            decoded_letter = int(alphaNum.get(character)) + rotation
+    for char in encoded:
+        if char.isalpha() is True:
+            decoded_letter = int(letters_to_numbers.get(char)) + rotation
 
             if decoded_letter > 26:
                 decoded_letter = decoded_letter - 26
             elif decoded_letter < 1:
                 decoded_letter = decoded_letter + 26
             decoded = decoded + num_alpha.get(str(decoded_letter))
+        else:
+            decoded = decoded + char
     return decoded
 def word_check(word):
-    return word in englishDictionary
+    return word in english_dictionary
 
 
 # DECODERS
 def bacon(encoded):
+    bacon_to_english_1 = {'aaaaa': 'A', 'aaaab': 'B', 'aaaba': 'C', 'aaabb': 'D', 'aabaa': 'E',
+                          'aabab': 'F', 'aabba': 'G', 'aabbb': 'H', 'abaaa': 'I',
+                          'abaab': 'K', 'ababa': 'L', 'ababb': 'M', 'abbaa': 'N', 'abbab': 'O',
+                          'abbba': 'P', 'abbbb': 'Q', 'baaaa': 'R', 'baaab': 'S', 'baaba': 'T',
+                          'baabb': 'U', 'babaa': 'W', 'babab': 'X', 'babba': 'Y',
+                          'babbb': 'Z'}
+    bacon_to_english_2 = {'aaaaa': 'A', 'aaaab': 'B', 'aaaba': 'C', 'aaabb': 'D', 'aabaa': 'E',
+                          'aabab': 'F', 'aabba': 'G', 'aabbb': 'H', 'abaaa': 'I', 'abaab': 'J',
+                          'ababa': 'K', 'ababb': 'L', 'abbaa': 'M', 'abbab': 'N', 'abbba': 'O',
+                          'abbbb': 'P', 'baaaa': 'Q', 'baaab': 'R', 'baaba': 'S', 'baabb': 'T',
+                          'babaa': 'U', 'babab': 'V', 'babba': 'W', 'babbb': 'X', 'bbaaa': 'Y',
+                          'bbaab': 'Z'}
+
     if len(Counter(encoded).most_common(3)) is 2:
         first_most_common = Counter(encoded).most_common(2)[0][0]
         second_most_common = Counter(encoded).most_common(2)[1][0]
@@ -128,18 +134,19 @@ def bacon(encoded):
         decoded22 = ''
 
         for letter in encoded1:
-            if letter in baconEnglish1:
-                decoded11 = decoded11 + str(baconEnglish1.get(letter))
-            if letter in baconEnglish2:
-                decoded21 = decoded21 + str(baconEnglish2.get(letter))
+            if letter in bacon_to_english_1:
+                decoded11 = decoded11 + str(bacon_to_english_1.get(letter))
+            if letter in bacon_to_english_2:
+                decoded21 = decoded21 + str(bacon_to_english_2.get(letter))
 
         for letter in encoded2:
-            if letter in baconEnglish1:
-                decoded12 = decoded12 + str(baconEnglish1.get(letter))
-            if letter in baconEnglish2:
-                decoded22 = decoded22 + str(baconEnglish2.get(letter))
+            if letter in bacon_to_english_1:
+                decoded12 = decoded12 + str(bacon_to_english_1.get(letter))
+            if letter in bacon_to_english_2:
+                decoded22 = decoded22 + str(bacon_to_english_2.get(letter))
 
         if len(decoded11) > 0 or len(decoded12) > 0 or len(decoded21) > 0 or len(decoded22) > 0:
+            print()
             print('BACON')
 
             if len(decoded11) > 0:
@@ -160,48 +167,48 @@ def bacon(encoded):
                     print('Encoding 2, Cipher 1 :', decoded12.replace('U', 'V'))
             if len(decoded22) > 0:
                 print('Encoding 2, Cipher 2 :', decoded22)
-            print()
-def base_decoder(encoded):
+def base(encoded):
     # base16/hexadecimal
     try:
         decoded = base64.b16decode(encoded)
+        print()
         print('BASE16')
         print('Decoded :', str(decoded)[2:len(decoded) + 2])
-        print()
     except base64.binascii.Error:
         pass
 
     # base32
     try:
         decoded = base64.b32decode(encoded)
+        print()
         print('BASE32')
         print('Decoded :', str(decoded)[2:len(decoded) + 2])
-        print()
     except base64.binascii.Error:
         pass
 
     # base64/radix64
     try:
         decoded = base64.b64decode(encoded, validate=True)
+        print()
         print('BASE64')
         print('Decoded :', str(decoded)[2:len(decoded) + 2])
-        print()
     except base64.binascii.Error:
         pass
 
     # base85/ascii85
     try:
         decoded = base64.a85decode(encoded)
+        print()
         print('BASE85')
         print('Decoded :', str(decoded)[2:len(decoded) + 2])
-        print()
-    except base64.binascii.Error or ValueError:
+    except (base64.binascii.Error, ValueError):
         pass
 def caesar(encoded):
-    print('CAESAR')
-    for rotation in range(1, 25):
-        print('Rotated', rotation * -1, ':', rotate(encoded.upper(), rotation * -1))
-    print()
+    if re.search('[a-zA-Z]', encoded):
+        print()
+        print('CAESAR')
+        for rotation in range(1, 25):
+            print('Rotated', rotation * -1, ':', rotate(encoded.upper(), rotation * -1))
 def monoalphabetic(encoded):
     # Need to figure out how to do this better...
     encoded = encoded.lower()
@@ -210,28 +217,31 @@ def monoalphabetic(encoded):
 
     for letter in range(0, 25):
         encoded = encoded.replace(frequency_list[letter], english_frequency[letter])
+    print()
     print('MONOALPHABETIC')
     print('Decoded :', encoded)
-def morse_decoder(encoded):
+def morse(encoded):
     decoded = ''
 
     for letter in encoded.split():
-        if letter in morseEnglish:
-            decoded = decoded + str(morseEnglish.get(letter))
+        if letter in morse_to_english:
+            decoded = decoded + str(morse_to_english.get(letter))
     if len(decoded) > 0:
+        print()
         print('MORSE CODE')
         print('Morse to English :', decoded)
-        print()
-def num_base(encoded, bases):
-    for base in bases:
+def number_base(encoded):
+    bases = [2, 8, 16]
+
+    for number in bases:
         encoded_list = []
 
         if ' ' not in encoded:
-            if base is 2:
+            if number is 2:
                 encoded_list = re.findall('........', encoded)
-            if base is 8:
+            if number is 8:
                 encoded_list = re.findall('...', encoded)
-            if base is 16:
+            if number is 16:
                 encoded_list = re.findall('..', encoded)
         else:
             encoded_list = encoded.split()
@@ -239,50 +249,51 @@ def num_base(encoded, bases):
 
         try:
             for character in encoded_list:
-                character = int(character, base)
+                character = int(character, number)
                 decoded = decoded + chr(character)
 
-            if base is 2:
-                print('BINARY')
-            elif base is 8:
-                print('OCTAL')
-            elif base is 16:
-                print('HEXADECIMAL')
-            print('Decoded :', decoded)
-            print()
-        except OverflowError:
-            pass
-        except ValueError:
+            if len(decoded) > 0:
+                print()
+                if number is 2:
+                    print('BINARY')
+                elif number is 8:
+                    print('OCTAL')
+                elif number is 16:
+                    print('HEXADECIMAL')
+                print('Decoded :', decoded)
+        except (OverflowError, ValueError):
             pass
 def null(encoded):
     # first letter of each word
-    first_letters = ''
+    first_characters = ''
     for x in encoded.split():
-        first_letters += x[0]
+        first_characters += x[0]
 
     # last letter of each word
-    last_letters = ''
+    last_characters = ''
     for x in encoded.split():
-        last_letters += x[len(x) - 1]
+        last_characters += x[len(x) - 1]
 
     # capitalized letters of string
     capital_letters = ''.join([c for c in encoded if c.isupper()])
 
-    if len(first_letters) > 1 or len(last_letters) > 1 or len(capital_letters) > 1:
+    if len(first_characters) > 1 or len(last_characters) > 1 or len(capital_letters) > 1:
+        print()
         print('NULL')
-        if len(first_letters) > 1:
-            print('First letters :', first_letters)
-        if len(last_letters) > 1:
-            print('Last letters :', last_letters)
+        if len(first_characters) > 1:
+            print('First characters :', first_characters)
+        if len(last_characters) > 1:
+            print('Last characters :', last_characters)
         if len(capital_letters) > 1:
             print('Capital letters :', capital_letters)
-        print()
 def polybius(encoded):
     check = list(encoded)
-    for x in check:
-        if int(x) > 5:
-            return
-
+    try:
+        for x in check:
+            if int(x) > 5:
+                return
+    except ValueError:
+        return
     row1 = 'ABCDE'
     row2 = 'FGHIK'
     row3 = 'LMNOP'
@@ -307,11 +318,12 @@ def polybius(encoded):
             polybius_output = polybius_output + row4[second_number - 1]
         elif x[0] == '5':
             polybius_output = polybius_output + row5[second_number - 1]
+    print()
     print('POLYBIUS')
     print('Translation :', polybius_output)
-    print()
 def rail(encoded):
     if len(encoded) > 2:
+        print()
         print('RAIL')
         rail_input = encoded.upper()
 
@@ -322,11 +334,7 @@ def rail(encoded):
             for y in range(0, len(encoded)):
                 decoded = decoded + rail_input[x * y]
             print('Shift', x - 1, ': ', decoded)
-        print()
-def rot13(encoded):
-    print('ROT13')
-    print('Rotated -13 :', rotate(encoded.upper(), -13))
-    print()
+
 
 '''
 # vigenere
@@ -375,31 +383,20 @@ def vigenere(encoded):
             # print('Text:', textList[keyEntry])
     print()
 '''
+encoded_text = process_arguments()[0]
 
+if encoded_text is '':
+    encoded_text = input()
 
-encodedText = 'LIVITCSWPIYVEWHEVSRIQMXLEYVEOIEWHRXEXIPFEMVEWHKVSTYLXZIXLIKIIXPIJVSZEYPERRGERIMWQLMGLMXQERIWGPSRIHMXQEREKIETXMJTPRGEVEKEITREWHEXXLEXXMZITWAWSQWXSWEXTVEPMRXRSJGSTVRIEYVIEXCVMUIMWERGMIWXMJMGCSMWXSJOMIQXLIVIQIVIXQSVSTWHKPEGARCSXRWIEVSWIIBXVIZMXFSJXLIKEGAEWHEPSWYSWIWIEVXLISXLIVXLIRGEPIRQIVIIBGIIHMWYPFLEVHEWHYPSRRFQMXLEPPXLIECCIEVEWGISJKTVWMRLIHYSPHXLIQIMYLXSJXLIMWRIGXQEROIVFVIZEVAEKPIEWHXEAMWYEPPXLMWYRMWXSGSWRMHIVEXMSWMGSTPHLEVHPFKPEZINTCMXIVJSVLMRSCMWMSWVIRCIGXMWYMX'
+print('Input :', encoded_text)
 
-print('Input:', encodedText)
-print()
-
-# for value in englishDictionary:
-#     print(value)
-
-# print(word_check(encodedText))
-
-# if has_letters(encodedText) is True and has_numbers(encodedText) is False and has_symbols(encodedText) is False:
-#     rot13(encodedText)
-#     caesar(encodedText)
-#     null(encodedText)
-#     rail(encodedText)
-#     monoalphabetic(encodedText)
-#     morse_encoder(encodedText)
-#     # vigenere(encodedText)
-# elif has_numbers(encodedText) is True and has_letters(encodedText) is False and has_symbols(encodedText) is False:
-#     polybius(encodedText)
-#
-# base_decoder(encodedText)
-# bacon(encodedText)
-# morse_decoder(encodedText)
-# morse_converter(encodedText)
-# num_base(encodedText, [2, 8, 16])
+bacon(encoded_text)
+base(encoded_text)
+caesar(encoded_text)
+morse(encoded_text)
+morse_converter(encoded_text)
+morse_encoder(encoded_text)
+null(encoded_text)
+number_base(encoded_text)
+polybius(encoded_text)
+rail(encoded_text)
