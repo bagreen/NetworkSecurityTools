@@ -5,12 +5,8 @@ import subprocess
 
 def process_arguments():
     parser = argparse.ArgumentParser(description='Change your MAC address')
-    parser.add_argument('interface')
-    parser.add_argument('mac')
-
-    parsed = parser.parse_args()
-
-
+    parser.add_argument('interface', help='Interface to change the MAC address of')
+    parser.add_argument('mac', help='MAC address to change your MAC to')
 
     try:
         return list(vars(parser.parse_args()).values())
@@ -51,14 +47,14 @@ def check_arguments(args):
     return True
 
 
-arg_results = process_arguments()
+arguments = process_arguments()
 
-if check_arguments(arg_results) is True:
-    original_mac = get_mac(arg_results)
-    change_mac(arg_results)
-    current_mac = get_mac(arg_results)
+if check_arguments(arguments) is True:
+    original_mac = get_mac(arguments)
+    change_mac(arguments)
+    current_mac = get_mac(arguments)
 
-    if current_mac == arg_results[1]:
-        print('Changed MAC address on', arg_results[0], 'from', original_mac, 'to', current_mac)
+    if current_mac == arguments[1]:
+        print('Changed MAC address on', arguments[0], 'from', original_mac, 'to', current_mac)
     else:
         print('Unknown error!')
