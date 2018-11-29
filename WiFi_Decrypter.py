@@ -16,7 +16,7 @@ os.system('sudo airodump-ng wlp3s0mon')
 # this keeps running infinitely
 # look into using timeout and timeout expired exception to get around this issue
 # https://docs.python.org/3.5/library/subprocess.html#frequently-used-arguments
-
+# GOT IT, USE POPEN.WAIT(TIMEOUT=whatever)
 print('test')
 
 
