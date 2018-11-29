@@ -6,8 +6,10 @@ import requests
 
 def process_arguments():
     parser = argparse.ArgumentParser(description='Either do a crawl attack or a subdirectory attack on a website')
-    parser.add_argument('attack', help='What type of attack you want to do, either (c) crawl website or (s) find subdirectories')
-    parser.add_argument('url', help='What website you want to target, make sure that you type in the whole address, e.g. \'https://www.whatever.com\'')
+    parser.add_argument('attack',
+                        help='What type of attack you want to do, either (c) crawl website or (s) find subdirectories')
+    parser.add_argument('url',
+                        help='What website you want to target, make sure that you type in the whole address, e.g. \'https://www.whatever.com\'')
     parser.add_argument('-v', '--verbose', help='Adds more verbosity', action='store_true')
 
     try:
@@ -50,7 +52,7 @@ def find_subdirectories(url, verbosity):
     print('Finding subdirectories for', url)
     found_urls = []
 
-    with open('common.txt', 'r') as file:
+    with open('1000MostCommonWebsiteSubdirectories.txt', 'r') as file:
         for line in file:
             line = line.rstrip()
             sub_url = url + '/' + line
