@@ -2,7 +2,9 @@
 
 This repository contains a selection of tools I've made that have been fairly helpful (at least to me).
 
-All of these files work through command line input, you can always add -h to find what the options are
+All of these files work through command line input, you can always add -h to find what the options are. 
+
+The wordlists that these files use by default are included in this repository, however if you would like to download more/different wordlists there are quite a few good resources, including my wordslists repository [here](https://github.com/bagreen/Wordlists).
 
 ## Decoder
 
@@ -27,7 +29,7 @@ Currently decodes input encoded in:
 
 Keylogger that emails the keys pressed to the specified email.
 
-## Login_Decrypter
+## Login_Decrypter (WIP)
 
 Tries various passwords and usernames to login to a website. 
 
@@ -65,6 +67,10 @@ Captures a WiFi network's handshake and attempts to decrypt the password.
 
 * Learn how to do frequency analysis properly
 * Add more decryption ciphers
+
+## Login_Decrypter
+
+* Test and clean up
 
 ## Keylogger
 
