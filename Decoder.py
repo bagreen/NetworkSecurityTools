@@ -13,14 +13,16 @@ https://simonsingh.net/The_Black_Chamber/vigenere_cracking_tool.html
 from collections import Counter
 import argparse
 import base64
+import math
 import re
 
 # HELPING DICTIONARIES
-letters_to_numbers = {'A': '1', 'B': '2', 'C': '3', 'D': '4', 'E': '5', 'F': '6',
-                      'G': '7', 'H': '8', 'I': '9', 'J': '10', 'K': '11', 'L': '12',
-                      'M': '13', 'N': '14', 'O': '15', 'P': '16', 'Q': '17', 'R': '18',
-                      'S': '19', 'T': '20', 'U': '21', 'V': '22', 'W': '23', 'X': '24',
-                      'Y': '25', 'Z': '26'}
+letters_to_numbers = {'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6,
+                      'G': 7, 'H': 8, 'I': 9, 'J': 10, 'K': 11, 'L': 12,
+                      'M': 13, 'N': 14, 'O': 15, 'P': 16, 'Q': 17, 'R': 18,
+                      'S': 19, 'T': 20, 'U': 21, 'V': 22, 'W': 23, 'X': 24,
+                      'Y': 25, 'Z': 26}
+numbers_to_letters = {z: x for x, z in letters_to_numbers.items()}
 morse_to_english = {'.-...': '&', '--..--': ',', '....-': '4', '.....': '5',
                     '...---...': 'SOS', '-...': 'B', '-..-': 'X', '.-.': 'R',
                     '.--': 'W', '..---': '2', '.-': 'A', '..': 'I', '..-.': 'F',
@@ -33,17 +35,12 @@ morse_to_english = {'.-...': '&', '--..--': ',', '....-': '4', '.....': '5',
                     '.-.-.': '+', '-.-.': 'C', '---...': ':', '-.--': 'Y', '-': 'T',
                     '.--.-.': '@', '...-..-': '$', '.---': 'J', '-----': '0', '----.': '9',
                     '.-..-.': '\"', '-.--.': '(', '---..': '8', '...--': '3'}
-english_dictionary = []
+english_dictionary = {}
 english_frequency = ['E', 'T', 'A', 'O', 'I', 'N', 'S', 'H', 'R', 'W', 'D', 'L', 'Y', 'K', 'C', 'U', 'M', 'F', 'G', 'P',
                      'B', 'V', 'J', 'X', 'Q', 'Z']
 
 
 # HELPING METHODS
-def dictionary():
-    with open('anglo-saxon-surnames', 'r') as handle:
-        for line in handle:
-            english_dictionary.append(line.strip().upper())
-    english_dictionary.sort(key=lambda item: (len(item), item))
 def frequency_analysis(encoded):
     encoded_list = Counter(encoded).most_common(100)
     frequency_list = []
@@ -53,6 +50,42 @@ def frequency_analysis(encoded):
             frequency_list.append(encoded_list[frequency][0])
 
     return frequency_list
+def gcd(first_num, second_num):
+    while first_num != 0:
+        first_num, second_num = second_num % first_num, first_num
+    return second_num
+def is_english(message):
+    if message is '':
+        return False
+
+    letters = ''
+    for char in message:
+        try:
+            if char.isalpha() or char is ' ':
+                letters += char
+        except AttributeError:
+            return False
+
+    words = letters.split()
+
+    matches = 0
+    for word in words:
+        if word.strip().upper() in english_dictionary:
+            matches += 1
+
+    if matches is len(words):
+        return True
+    else:
+        return False
+def modulo_inverse(a, m):
+    if gcd(a, m) != 1:
+        return None  # No mod inverse if a & m aren't relatively prime.
+    u1, u2, u3 = 1, 0, a
+    v1, v2, v3 = 0, 1, m
+    while v3 != 0:
+        q = u3 // v3  # Note that // is the integer division operator.
+        v1, v2, v3, u1, u2, u3 = (u1 - q * v1), (u2 - q * v2), (u3 - q * v3), v1, v2, v3
+    return u1 % m
 def morse_converter(encoded):
     if len(Counter(encoded).most_common(3)) is 2:
         first_most_common = Counter(encoded).most_common(2)[0][0]
@@ -78,6 +111,7 @@ def morse_encoder(encoded):
 def process_arguments():
     parser = argparse.ArgumentParser(description='Attempts to decrypt input in many different encryption types')
     parser.add_argument('-i', '--input', help='The information you want to decrypt', default='')
+    parser.add_argument('-v', help='Verbosity prints returned values even if they aren\'t words')
 
     try:
         return list(vars(parser.parse_args()).values())
@@ -85,25 +119,78 @@ def process_arguments():
         parser.error('Error')
 def rotate(encoded, rotation):
     decoded = ''
-    num_alpha = {z: x for x, z in letters_to_numbers.items()}
 
-    for char in encoded:
-        if char.isalpha() is True:
-            decoded_letter = int(letters_to_numbers.get(char)) + rotation
+    for char in encoded.upper():
+        if char.isalpha():
+            decoded_letter = letters_to_numbers.get(char) + rotation
 
             if decoded_letter > 26:
                 decoded_letter = decoded_letter - 26
             elif decoded_letter < 1:
                 decoded_letter = decoded_letter + 26
-            decoded = decoded + num_alpha.get(str(decoded_letter))
+            decoded = decoded + numbers_to_letters.get(decoded_letter)
         else:
             decoded = decoded + char
     return decoded
-def word_check(word):
-    return word in english_dictionary
+def setup_dictionary():
+    with open('1331811MostCommonEnglishWords.txt', 'r') as file:
+        for word in file:
+            english_dictionary[word.strip().upper()] = None
+
+
+# ENCODERS
+def rail_encryption(decoded):
+    rail_input = decoded
+
+    for x in range(2, len(decoded)):
+        rail_input = rail_input + decoded
+        encoded = ''
+
+        for y in range(0, len(decoded)):
+            encoded = encoded + rail_input[x * y]
+        print()
+        print('RAIL')
+        print('Shift %s: %s' % (x - 1, decoded))
 
 
 # DECODERS
+def affine(encoded):
+    found = False
+
+    for key in range(26 ** 2):
+        key_a = key // 26
+        key_b = key % 26
+
+        if gcd(key_a, 26) != 1:
+            continue
+
+        if key_a < 0 or key_b > 25:
+            continue
+
+        decoded = ''
+        mod_inverse_a = modulo_inverse(key_a, 26)
+
+        for char in encoded.upper():
+            if char.isalpha():
+                char_index = letters_to_numbers.get(char) - 1  # ?
+                decoded += str(numbers_to_letters.get((char_index - key_b) * mod_inverse_a % 26))
+            else:
+                decoded += char
+
+        if is_english(decoded) or verbose:
+            if found is False:
+                found = True
+                print()
+                print('AFFINE')
+            print('Key %s: %s' % (key, decoded))
+
+            # decoded = rotate(encoded.upper(), rotation)
+            # if is_english(decoded) or verbose is True:
+            #     if found is False:
+            #         found = True
+            #         print()
+            #         print('AFFINE')
+            #     print('Rotated %s: %s' % (rotation, decoded))
 def bacon(encoded):
     bacon_to_english_1 = {'aaaaa': 'A', 'aaaab': 'B', 'aaaba': 'C', 'aaabb': 'D', 'aabaa': 'E',
                           'aabab': 'F', 'aabba': 'G', 'aabbb': 'H', 'abaaa': 'I',
@@ -150,65 +237,73 @@ def bacon(encoded):
             print('BACON')
 
             if len(decoded11) > 0:
-                print('Encoding 1, Cipher 1 :', decoded11)
+                print('Encoding 1, Cipher 1:', decoded11)
 
                 if 'I' in decoded11:
-                    print('Encoding 1, Cipher 1 :', decoded11.replace('I', 'J'))
+                    print('Encoding 1, Cipher 1:', decoded11.replace('I', 'J'))
                 if 'U' in decoded11:
-                    print('Encoding 1, Cipher 1 :', decoded11.replace('U', 'V'))
+                    print('Encoding 1, Cipher 1:', decoded11.replace('U', 'V'))
             if len(decoded21) > 0:
-                print('Encoding 1, Cipher 2 :', decoded21)
+                print('Encoding 1, Cipher 2:', decoded21)
             if len(decoded12) > 0:
-                print('Encoding 2, Cipher 1 :', decoded12)
+                print('Encoding 2, Cipher 1:', decoded12)
 
                 if 'I' in decoded12:
-                    print('Encoding 2, Cipher 1 :', decoded12.replace('I', 'J'))
+                    print('Encoding 2, Cipher 1:', decoded12.replace('I', 'J'))
                 if 'U' in decoded12:
-                    print('Encoding 2, Cipher 1 :', decoded12.replace('U', 'V'))
+                    print('Encoding 2, Cipher 1:', decoded12.replace('U', 'V'))
             if len(decoded22) > 0:
-                print('Encoding 2, Cipher 2 :', decoded22)
+                print('Encoding 2, Cipher 2:', decoded22)
 def base(encoded):
     # base16/hexadecimal
     try:
         decoded = base64.b16decode(encoded)
-        print()
-        print('BASE16')
-        print('Decoded :', str(decoded)[2:len(decoded) + 2])
+        if is_english(decoded) or verbose:
+            print()
+            print('BASE16')
+            print('Decoded:', str(decoded)[2:len(decoded) + 2])
     except base64.binascii.Error:
         pass
 
     # base32
     try:
         decoded = base64.b32decode(encoded)
-        print()
-        print('BASE32')
-        print('Decoded :', str(decoded)[2:len(decoded) + 2])
+        if is_english(decoded) or verbose:
+            print()
+            print('BASE32')
+            print('Decoded:', str(decoded)[2:len(decoded) + 2])
     except base64.binascii.Error:
         pass
 
     # base64/radix64
     try:
         decoded = base64.b64decode(encoded, validate=True)
-        print()
-        print('BASE64')
-        print('Decoded :', str(decoded)[2:len(decoded) + 2])
+        if is_english(decoded) or verbose:
+            print()
+            print('BASE64')
+            print('Decoded:', str(decoded)[2:len(decoded) + 2])
     except base64.binascii.Error:
         pass
 
     # base85/ascii85
     try:
         decoded = base64.a85decode(encoded)
-        print()
-        print('BASE85')
-        print('Decoded :', str(decoded)[2:len(decoded) + 2])
+        if is_english(decoded) or verbose:
+            print()
+            print('BASE85')
+            print('Decoded:', str(decoded)[2:len(decoded) + 2])
     except (base64.binascii.Error, ValueError):
         pass
 def caesar(encoded):
-    if re.search('[a-zA-Z]', encoded):
-        print()
-        print('CAESAR')
-        for rotation in range(1, 25):
-            print('Rotated', rotation * -1, ':', rotate(encoded.upper(), rotation * -1))
+    found = False
+    for rotation in range(-1, -26, -1):
+        decoded = rotate(encoded, rotation)
+        if is_english(decoded) or verbose is True:
+            if found is False:
+                found = True
+                print()
+                print('CAESAR')
+            print('Rotated %s: %s' % (rotation, decoded))
 def monoalphabetic(encoded):
     # Need to figure out how to do this better...
     encoded = encoded.lower()
@@ -219,17 +314,17 @@ def monoalphabetic(encoded):
         encoded = encoded.replace(frequency_list[letter], english_frequency[letter])
     print()
     print('MONOALPHABETIC')
-    print('Decoded :', encoded)
+    print('Decoded:', encoded)
 def morse(encoded):
     decoded = ''
 
     for letter in encoded.split():
         if letter in morse_to_english:
             decoded = decoded + str(morse_to_english.get(letter))
-    if len(decoded) > 0:
+    if len(decoded) > 0 and (is_english(decoded) or verbose):
         print()
         print('MORSE CODE')
-        print('Morse to English :', decoded)
+        print('Morse to English:', decoded)
 def number_base(encoded):
     bases = [2, 8, 16]
 
@@ -252,7 +347,7 @@ def number_base(encoded):
                 character = int(character, number)
                 decoded = decoded + chr(character)
 
-            if len(decoded) > 0:
+            if len(decoded) > 0 and (is_english(decoded) or verbose):
                 print()
                 if number is 2:
                     print('BINARY')
@@ -260,7 +355,7 @@ def number_base(encoded):
                     print('OCTAL')
                 elif number is 16:
                     print('HEXADECIMAL')
-                print('Decoded :', decoded)
+                print('Decoded:', decoded)
         except (OverflowError, ValueError):
             pass
 def null(encoded):
@@ -277,15 +372,16 @@ def null(encoded):
     # capitalized letters of string
     capital_letters = ''.join([c for c in encoded if c.isupper()])
 
-    if len(first_characters) > 1 or len(last_characters) > 1 or len(capital_letters) > 1:
+    if is_english(first_characters) or is_english(last_characters) or is_english(capital_letters) or verbose:
+    # if len(first_characters) > 1 or len(last_characters) > 1 or len(capital_letters) > 1:
         print()
         print('NULL')
-        if len(first_characters) > 1:
-            print('First characters :', first_characters)
-        if len(last_characters) > 1:
-            print('Last characters :', last_characters)
-        if len(capital_letters) > 1:
-            print('Capital letters :', capital_letters)
+        if len(first_characters) > 0:
+            print('First characters:', first_characters)
+        if len(last_characters) > 0:
+            print('Last characters:', last_characters)
+        if len(capital_letters) > 0:
+            print('Capital letters:', capital_letters)
 def polybius(encoded):
     check = list(encoded)
     try:
@@ -302,40 +398,66 @@ def polybius(encoded):
 
     encoded = encoded.replace(' ', '')
     polybius_array = re.findall('..', encoded)
-    polybius_output = ''
+    decoded = ''
 
     for x in polybius_array:
         second_number = x[1]
         second_number = int(second_number)
 
         if x[0] == '1':
-            polybius_output = polybius_output + row1[second_number - 1]
+            decoded = decoded + row1[second_number - 1]
         elif x[0] == '2':
-            polybius_output = polybius_output + row2[second_number - 1]
+            decoded = decoded + row2[second_number - 1]
         elif x[0] == '3':
-            polybius_output = polybius_output + row3[second_number - 1]
+            decoded = decoded + row3[second_number - 1]
         elif x[0] == '4':
-            polybius_output = polybius_output + row4[second_number - 1]
+            decoded = decoded + row4[second_number - 1]
         elif x[0] == '5':
-            polybius_output = polybius_output + row5[second_number - 1]
-    print()
-    print('POLYBIUS')
-    print('Translation :', polybius_output)
-def rail(encoded):
-    if len(encoded) > 2:
+            decoded = decoded + row5[second_number - 1]
+
+    if is_english(decoded) or verbose:
         print()
-        print('RAIL')
-        rail_input = encoded.upper()
+        print('POLYBIUS')
+        print('Translation:', decoded)
+def reverse(encoded):
+    # reverses text input
+    decoded = ''
 
-        for x in range(2, len(encoded)):
-            rail_input = rail_input + encoded
-            decoded = ''
+    for i in range(len(encoded) - 1, -1, -1):
+        decoded = decoded + encoded[i]
 
-            for y in range(0, len(encoded)):
-                decoded = decoded + rail_input[x * y]
-            print('Shift', x - 1, ': ', decoded)
+    if is_english(decoded) or verbose:
+        print()
+        print('REVERSE')
+        print('Reversed :', decoded)
+def transposition(encoded):
+    if len(encoded) > 2:
+        found = False
 
+        for key in range(2, len(encoded)):
+            columns = int(math.ceil(len(encoded) / float(key)))
+            rows = key
+            boxes = (columns * rows) - len(encoded)
+            decoded_list = [''] * columns
 
+            column = 0
+            row = 0
+
+            for symbol in encoded:
+                decoded_list[column] += symbol
+                column += 1
+
+                if (column == columns) or (column == columns - 1 and row >= rows - boxes):
+                    column = 0
+                    row += 1
+            decoded = ''.join(decoded_list)
+
+            if is_english(decoded) or verbose:
+                if found is False:
+                    found = True
+                    print()
+                    print("TRANSPOSITION")
+                print('Shift %s: %s' % (key, decoded))
 '''
 # vigenere
 def vigenere(encoded):
@@ -383,13 +505,27 @@ def vigenere(encoded):
             # print('Text:', textList[keyEntry])
     print()
 '''
-encoded_text = process_arguments()[0]
 
+
+setup_dictionary()
+
+encoded_text = process_arguments()[0]
+# encoded_text = 'anbk bii berjg zg'
+verbose = process_arguments()[1]
+# verbose = True
+
+print('(Press Ctrl+D to quit at anytime)')
 if encoded_text is '':
+    print('Please enter your encoded message')
     encoded_text = input()
 
-print('Input :', encoded_text)
+print('Input:', encoded_text)
 
+# print('Is your input a word/words?')
+#
+# print(is_english(encoded_text))
+
+affine(encoded_text)
 bacon(encoded_text)
 base(encoded_text)
 caesar(encoded_text)
@@ -399,4 +535,5 @@ morse_encoder(encoded_text)
 null(encoded_text)
 number_base(encoded_text)
 polybius(encoded_text)
-rail(encoded_text)
+reverse(encoded_text)
+transposition(encoded_text)
