@@ -1,6 +1,7 @@
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 import argparse
+import concurrent.futures
 import requests
 
 
@@ -11,24 +12,23 @@ def process_arguments():
     parser.add_argument('url',
                         help='What website you want to target, make sure that you type in the whole address, e.g. \'https://www.whatever.com\'')
     parser.add_argument('-v', '--verbose', help='Adds more verbosity', action='store_true')
+    parser.add_argument('-r', '--recursive', help='Search the website recursively', action='store_true')
 
     try:
-        return list(vars(parser.parse_args()).values())
+        return parser.parse_args()
     except IOError:
         parser.error('Error')
 
 
-def check_website(url, verbosity):
+def check_website(url):
     web_request = requests.get(url)
 
-    if verbosity is True:
+    if verbose is True:
         print('Website status code:', web_request.status_code)
 
     if web_request.status_code > 400:
-        print('Website is down or doesn\'t exist, try again')
         return False
     else:
-        print('Website is up!')
         return True
 
 
@@ -48,43 +48,83 @@ def crawl_website(url):
             crawl_website(link)
 
 
-def find_subdirectories(url, verbosity):
-    print('Finding subdirectories for', url)
-    found_urls = []
+def find_subdirectory(base_url, sub_url):
+    combined_url = base_url + sub_url
+    web_request = requests.get(combined_url)
 
-    with open('1000MostCommonWebsiteSubdirectories.txt', 'r') as file:
-        for line in file:
-            line = line.rstrip()
-            sub_url = url + '/' + line
-            web_request = requests.get(sub_url)
+    if verbose is True:
+        print('Testing ' + combined_url)
 
-            if verbosity is True:
-                print('Testing', sub_url)
+    if web_request.status_code < 400:
+        print('FOUND', combined_url)
+        found_urls.append(combined_url)
 
-            if web_request.status_code < 400:
-                print('FOUND ', sub_url)
-                found_urls.append(sub_url)
 
-    print()
-    print('Found these subdirectories of', url)
-    for found_url in found_urls:
-        print(found_url)
-    print()
+def find_subdirectories(base_url):
+    if not base_url.endswith('/'):
+        base_url = base_url + '/'
 
-    for sub_url in found_urls:
-        find_subdirectories(sub_url, verbosity)
+    print('Checking', base_url)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = {executor.submit(find_subdirectory, base_url, url.rstrip()): url for url in subdirectories}
+
+    if len(found_urls) is 0:
+        print('Nothing found')
+        print()
+    else:
+        print()
+        print('Found:')
+        found_urls.sort()
+        for found_url in found_urls:
+            print(found_url)
+
+        if recursive is True:
+            base_urls = found_urls.copy()
+            found_urls.clear()
+
+            for base_url in base_urls:
+                print()
+                print()
+                find_subdirectories(base_url)
 
 
 args = process_arguments()
 
+target_url = args.url
+
+recursive = args.recursive
+
+verbose = args.verbose
+
+subdirectories = []
+
 crawl_attack_names = ['C', 'c', 'Crawl', 'crawl', 'CRAWL']
 subdirectory_attack_names = ['S', 's', 'Sub', 'sub', 'SUB', 'Subdirectory', 'subdirectory', 'SUBDIRECTORY']
 
-if check_website(args[1], args[2]) is True:
-    if args[0] in crawl_attack_names:
-        links = []
-        crawl_website(args[1])
-    elif args[0] in subdirectory_attack_names:
-        find_subdirectories(args[1], args[2])
-    else:
-        print('Attack type entered is invalid')
+if check_website(target_url) is False:
+    print('Website is down or doesn\'t exist, try again')
+    exit()
+
+print('Website is up!')
+print()
+
+if args.attack in crawl_attack_names:
+    links = []
+    crawl_website(target_url)
+    exit()
+elif args.attack in subdirectory_attack_names:
+    found_urls = []
+    subdirectories = []
+
+    with open('1000MostCommonWebsiteSubdirectories.txt', 'r') as file:
+        for line in file:
+            subdirectories.append(line.rstrip())
+
+    find_subdirectories(target_url)
+    print()
+    print('DONE!')
+    exit()
+else:
+    print('Attack type entered is invalid')
+    exit()
