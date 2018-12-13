@@ -3,6 +3,7 @@ from urllib.parse import urljoin
 import argparse
 import concurrent.futures
 import requests
+import subprocess
 
 
 def process_arguments():
@@ -55,34 +56,36 @@ def find_subdirectory(url, sub_url):
     combined_url = url + sub_url
     web_request = requests.get(combined_url)
 
-    if verbose is True:
-        print('Testing ' + combined_url)
+    testing = 'Testing ' + combined_url
+
+    print(testing, ' '*(100 - len(testing)), end='\r')
 
     if web_request.status_code < 400:
-        print('FOUND', combined_url)
+        print('+', combined_url, ' '*(102 - len(testing)))
         found_sub_urls.append(combined_url)
+
+    return
 
 
 def find_subdirectories(url):
     if not url.endswith('/'):
         url = url + '/'
 
-    print('Checking', url)
+    print('---- Checking', url, '----')
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = {executor.submit(find_subdirectory, url, sub_url.rstrip()): sub_url for sub_url in subdirectories}
 
     if len(found_sub_urls) is 0:
+        print()
         print('Nothing found')
         print()
     else:
-        print()
-        print('Found:')
         found_sub_urls.sort()
+
         for found_sub_url in found_sub_urls:
             found_urls.append(found_sub_url)
-            print(found_sub_url)
-        
+
         if recursive is True:
             recursive_urls = found_sub_urls.copy()
             found_sub_urls.clear()
@@ -118,19 +121,39 @@ print()
 
 if attack_mode in ['C', 'c', 'Crawl', 'crawl', 'CRAWL']:
     crawl_website(target_url)
-    exit()
 elif attack_mode in ['S', 's', 'Sub', 'sub', 'SUB', 'Subdirectory', 'subdirectory', 'SUBDIRECTORY']:
-
     with open('1000MostCommonWebsiteSubdirectories.txt', 'r') as file:
         for line in file:
             subdirectories.append(line.rstrip())
 
     find_subdirectories(target_url)
-    print()
-    print('DONE!')
-    exit()
 elif attack_mode in ['B', 'b', 'BOTH', 'Both', 'both']:
     crawl_and_find_subdirectories(target_url)
 else:
     print('Attack type entered is invalid')
     exit()
+
+found_urls = sorted(found_urls, key=lambda s: s.casefold())
+
+extra = False
+
+if len(found_urls) % 2 is 1:
+    found_urls.append(' ')
+    extra = True
+
+split = len(found_urls) // 2
+
+first_column = found_urls[0:split]
+second_column = found_urls[split:]
+
+print()
+print()
+subprocess.call(['clear'])
+print('Found:')
+
+for i in range(0, split):
+    print(first_column[i], ' ' * (53 - len(first_column[i])), second_column[i])
+
+if extra:
+    del found_urls[-1]
+exit()
