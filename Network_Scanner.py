@@ -1,7 +1,6 @@
-from scapy.layers.inet import ARP, Ether, IP, sr, sr1, srp, TCP
+from scapy.layers.inet import ARP, Ether, IP, sr1, srp, TCP
 import argparse
 import network_data
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def process_arguments():
     parser = argparse.ArgumentParser(description='Code that can either scan your network for devices on it, or scan a computer for open ports')
@@ -36,13 +35,21 @@ def network_scan(ip):
     return clients_list
 
 
+def port_scan(ip, port):
+    try:
+        packet_flags = sr1(IP(dst=ip) / TCP(dport=port, flags='S'), timeout=2, verbose=False).getlayer(TCP).flags
+    except AttributeError:
+        return False
+
+    if packet_flags == 0x12:
+        return True
+    else:
+        return False
+    
+
 def ports_scan(ip, min_port, max_port):
     ports_list = []
 
-
-    # with ThreadPoolExecutor as executor:
-    #     for
-    #     future = executor.submit(port_scan, ip, port)
     for port in range(min_port, max_port):
         response = port_scan(ip, port)
 
@@ -66,45 +73,6 @@ def ports_scan(ip, min_port, max_port):
             print('There are no ports open on', ip, 'between port', min_port, 'and', max_port)
         else:
             print('Port', min_port, 'on', ip, 'is not up')
-# def ports_scan(ip, min_port, max_port):
-#     ports_list = []
-#
-#     for port in range(min_port, max_port):
-#         response = port_scan(ip, port)
-#
-#         if response:
-#             ports_list.append(port)
-#
-#     if len(ports_list) > 0:
-#         if len(ports_list) > 1:
-#             ports_list.sort()
-#             ports_list.sort(key=lambda value: len(value))
-#
-#             print('Ports open on', ip, '\n------------------------------------------')
-#             for port in ports_list:
-#                 print(port)
-#
-#         else:
-#             print('Port open on', ip, '\n------------------------------------------')
-#             print(ports_list[0])
-#
-#     else:
-#         if min_port < max_port:
-#             print('There are no ports open on', ip, 'between port', min_port, 'and', max_port)
-#         else:
-#             print('Port', min_port, 'on', ip, 'is not up')
-
-
-def port_scan(ip, port):
-    try:
-        packet_flags = sr1(IP(dst=ip) / TCP(dport=port, flags='S'), timeout=2, verbose=False).getlayer(TCP).flags
-    except AttributeError:
-        return False
-
-    if packet_flags == 0x12:
-        return True
-    else:
-        return False
 
 
 def main():
