@@ -17,6 +17,7 @@ Currently decodes input encoded in:
 * Null Cipher
 * Rail Cipher
 * Morse Code
+* Monoalphabetic Cipher
 * Binary
 * Octal
 * Hexadecimal
@@ -63,11 +64,6 @@ Captures a WiFi network's handshake and attempts to decrypt the password.
 
 # TODO
 
-## Decoder
-
-* Learn how to do frequency analysis properly
-* Add more decryption ciphers
-
 ## Login_Decrypter
 
 * Test and clean up
@@ -75,10 +71,6 @@ Captures a WiFi network's handshake and attempts to decrypt the password.
 ## Keylogger
 
 * Need to test
-
-## Website_Scanner
-
-* Need to figure out how to multithread this for faster scanning
 
 ## WiFi_Decrypter
 
