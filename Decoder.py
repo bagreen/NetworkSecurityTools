@@ -17,6 +17,7 @@ import math
 import re
 import string
 
+
 # HELPING DICTIONARIES
 letters_to_numbers = {'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6,
                       'G': 7, 'H': 8, 'I': 9, 'J': 10, 'K': 11, 'L': 12,
@@ -36,8 +37,7 @@ morse_to_english = {'.-...': '&', '--..--': ',', '....-': '4', '.....': '5',
                     '.-.-.': '+', '-.-.': 'C', '---...': ':', '-.--': 'Y', '-': 'T',
                     '.--.-.': '@', '...-..-': '$', '.---': 'J', '-----': '0', '----.': '9',
                     '.-..-.': '\"', '-.--.': '(', '---..': '8', '...--': '3'}
-english_dictionary = {}
-english_dictionary2 = []
+dictionary = {}
 english_frequency = ['E', 'T', 'A', 'O', 'I', 'N', 'S', 'H', 'R', 'W', 'D', 'L', 'Y', 'K', 'C', 'U', 'M', 'F', 'G', 'P',
                      'B', 'V', 'J', 'X', 'Q', 'Z']
 word_patterns = {}
@@ -45,8 +45,31 @@ verbose = False
 
 
 # HELPING METHODS
-def anagram(letters):
-    return 'POLISH'
+def anagram(scrambled):
+    upper = False
+    if scrambled.isupper():
+        upper = True
+        scrambled = scrambled.lower()
+    anagrams = []
+    setup_dictionary()
+    length = len(scrambled)
+
+    for word in dictionary:
+        if len(word) is length:
+            scrambled_list = list(scrambled)
+
+            for character in word:
+                if character not in scrambled_list:
+                    break
+                scrambled_list.remove(character)
+
+            if len(scrambled_list) is 0:
+                if upper is True:
+                    word = word.upper()
+                anagrams.append(word)
+    anagrams.sort()
+
+    return anagrams
 def blank_mapping():
     # Returns a dictionary value that is a blank cipherletter mapping:
     return {'A': [], 'B': [], 'C': [], 'D': [], 'E': [], 'F': [], 'G': [],
@@ -54,33 +77,33 @@ def blank_mapping():
             'O': [], 'P': [], 'Q': [], 'R': [], 'S': [], 'T': [], 'U': [],
             'V': [], 'W': [], 'X': [], 'Y': [], 'Z': []}
 def convert_hex(number):
-    number = str(number)
-    if number is '10':
+    number = str(number).strip()
+    if number == '10':
         return 'A'
-    elif number is '11':
+    elif number == '11':
         return 'B'
-    elif number is '12':
+    elif number == '12':
         return 'C'
-    elif number is '13':
+    elif number == '13':
         return 'D'
-    elif number is '14':
+    elif number == '14':
         return 'E'
-    elif number is '15':
+    elif number == '15':
         return 'F'
-    elif number is 'A':
+    elif number == 'A':
         return '10'
-    elif number is 'B':
+    elif number == 'B':
         return '11'
-    elif number is 'C':
+    elif number == 'C':
         return '12'
-    elif number is 'D':
+    elif number == 'D':
         return '13'
-    elif number is 'E':
+    elif number == 'E':
         return '14'
-    elif number is 'F':
+    elif number == 'F':
         return '15'
     else:
-        return str(number)
+        return number
 def frequency_analysis(encoded):
     encoded_list = Counter(encoded).most_common(100)
     frequency_list = []
@@ -112,15 +135,15 @@ def is_english(message):
 
     matches = 0
     for word in words:
-        if word.strip().upper() in english_dictionary:
+        if word.strip().lower() in dictionary:
             matches += 1
 
     if matches is len(words):
         return True
     else:
         return False
-def is_hex(number):
-    for character in str(number):
+def is_hexadecimal(encoded):
+    for character in encoded:
         if character.isalpha() and character not in ['A', 'B', 'C', 'D', 'E', 'F']:
             return False
     return True
@@ -134,6 +157,7 @@ def modulo_inverse(first_num, second_num):
         v1, v2, v3, u1, u2, u3 = (u1 - q * v1), (u2 - q * v2), (u3 - q * v3), v1, v2, v3
     return u1 % second_num
 def morse_converter(encoded):
+    result = ''
     if len(Counter(encoded).most_common(3)) is 2:
         first_most_common = Counter(encoded).most_common(2)[0][0]
         second_most_common = Counter(encoded).most_common(2)[1][0]
@@ -141,26 +165,27 @@ def morse_converter(encoded):
         decoded1 = encoded.replace(first_most_common, '.').replace(second_most_common, '-')
         decoded2 = encoded.replace(first_most_common, '-').replace(second_most_common, '.')
 
-        print()
-        print('MORSE CODE CONVERTER')
-        print('Output 1 :', decoded1)
-        print('Output 2 :', decoded2)
+        result = '\nMORSE CODE CONVERTER\nOutput 1 : ' + decoded1 + '\nOutput 2: ' + decoded2
+    return result
 def morse_encoder(encoded):
-    decoded = ''
+    decoded = '\nEnglish to Morse: '
     english_to_morse = {z: x for x, z in morse_to_english.items()}
 
     for x in list(encoded.upper()):
         if x is not ' ':
             decoded = decoded + str(english_to_morse.get(x) + ' ')
-    print()
-    print('MORSE CODE ENCODER')
-    print('English to Morse :', decoded)
+
+    return decoded
 def process_arguments():
     parser = argparse.ArgumentParser(description='Attempts to decrypt input in many different encryption types')
+
+    # options
     parser.add_argument('input', help='The information you want to decrypt', )
     parser.add_argument('-f', '--file', help='Text file to decrypt')
-    parser.add_argument('-v', '--verbose', help='Verbosity prints returned values even if they aren\'t words',
-                        action='store_true')
+    parser.add_argument('-v', help='Prints all returned values', action='store_true')
+    parser.add_argument('-b', '--big', help='Use a larger dictionary file instead', action='store_true')
+
+    # ciphers
     parser.add_argument('--affine', help='Affine cipher', action='store_true')
     parser.add_argument('--bacon', help='Bacon cipher', action='store_true')
     parser.add_argument('--base', help='Base cipher', action='store_true')
@@ -170,7 +195,15 @@ def process_arguments():
     parser.add_argument('--polybius', help='Polybius cipher', action='store_true')
     parser.add_argument('--reverse', help='Reverse cipher', action='store_true')
     parser.add_argument('--route', help='Route cipher', action='store_true')
-    parser.add_argument('--sub', help='Substitution cipher', action='store_true')
+    parser.add_argument('--substitution', help='Substitution cipher', action='store_true')
+
+    # convert
+    parser.add_argument('-bin', '--binary', help='Convert binary numbers to other numbers', action='store_true')
+    parser.add_argument('-oct', '--octal', help='Convert octal numbers to other numbers', action='store_true')
+    parser.add_argument('-dec', '--decimal', help='Convert decimal numbers to other numbers', action='store_true')
+    parser.add_argument('-hex', '--hexadecimal', help='Convert hexadecimal numbers to other numbers', action='store_true')
+    parser.add_argument('--english-morse', help='Translate to Morse code', action='store_true')
+
 
     try:
         return parser.parse_args()
@@ -191,29 +224,26 @@ def rotate(encoded, rotation):
         else:
             decoded = decoded + char
     return decoded
-def setup_dictionary():
-    if len(english_dictionary) is 0 and verbose is False:
-        with open('words', 'r') as file:
+def setup_dictionary(): # 1331811MostCommonEnglishWords.txt
+    if len(dictionary) is 0:
+        with open('1331811MostCommonEnglishWords.txt', 'r') as file:
             for word in file:
-                english_dictionary[word.strip().upper()] = None
-def setup_dictionary2():
-    if len(english_dictionary2) is 0 and verbose is False:
-        with open('words', 'r') as file:
-            for word in file:
-                english_dictionary2.append(word.rstrip())
+                dictionary[word.rstrip()] = ''
 def setup_patterns():
-    fo = open('dictionary.txt')
-    word_list = fo.read().split('\n')
-    fo.close()
+    if len(word_patterns) is 0 and verbose is False:
+        setup_dictionary()
+        fo = open('dictionary.txt')
+        word_list = fo.read().split('\n')
+        fo.close()
 
-    for word in word_list:
-        # Get the pattern for each string in wordList:
-        pattern = word_pattern(word)
+        for word in word_list:
+            # Get the pattern for each string in wordList:
+            pattern = word_pattern(word)
 
-        if pattern not in word_patterns:
-            word_patterns[pattern] = [word]
-        else:
-            word_patterns[pattern].append(word)
+            if pattern not in word_patterns:
+                word_patterns[pattern] = [word]
+            else:
+                word_patterns[pattern].append(word)
 def word_pattern(word):
     word = word.upper()
     letter_numbers = {}
@@ -231,7 +261,6 @@ def word_pattern(word):
 # DECODERS
 def affine(encoded):
     result = ''
-    found = False
 
     for key in range(26 ** 2):
         key_a = key // 26
@@ -254,12 +283,6 @@ def affine(encoded):
                 decoded += char
 
         if (decoded != encoded.upper() and is_english(decoded)) or verbose:
-            if found is False:
-                found = True
-                result += '\nAFFINE'
-                # print()
-                # print('AFFINE')
-            # print('Key %s: %s' % (key, decoded))
             result += '\nKey %s: %s' % (key, decoded)
 
     return result
@@ -353,141 +376,150 @@ def bacon(encoded):
                 result += '\nEncoding 2, Cipher 2: %s' % decoded22
     #                print('Encoding 2, Cipher 2:', decoded22)
     return result
-def base(encoded):
+def base_16(encoded):
     result = ''
-    bases = [2, 8, 16]
-
-    for number in bases:
-        if len(result) > 0:
-            result += '\n'
-
-        encoded_list = []
-
-        if ' ' not in encoded:
-            if number is 2:
-                encoded_list = re.findall('........', encoded)
-            if number is 8:
-                encoded_list = re.findall('...', encoded)
-            if number is 16:
-                encoded_list = re.findall('..', encoded)
-        else:
-            encoded_list = encoded.split()
-        decoded = ''
-
-        try:
-            for character in encoded_list:
-                character = int(character, number)
-                decoded = decoded + chr(character)
-
-            if len(decoded) > 0 and (is_english(decoded) or verbose):
-                if number is 2:
-                    result += '\nBINARY'
-                elif number is 8:
-                    result += '\nOCTAL'
-                elif number is 16:
-                    result += '\nHEXADECIMAL'
-                result += '\nDecoded: ' + decoded
-        except (OverflowError, ValueError):
-            pass
-
-    # base16/hexadecimal
     try:
         decoded = base64.b16decode(encoded).decode('utf-8')
         if is_english(decoded) or verbose:
             if len(result) > 0:
                 result += '\n'
-            result += '\nBASE16\nDecoded: %s' % str(decoded)
+            result += 'Decoded: %s' % str(decoded)
     except base64.binascii.Error:
         pass
-
-    # base32
-    try:
-        decoded = base64.b32decode(encoded).decode('utf-8')
-        if is_english(decoded) or verbose:
-            if len(result) > 0:
-                result += '\n'
-            result += '\nBASE32\nDecoded: %s' % str(decoded)
-    except (base64.binascii.Error, UnicodeDecodeError):
-        pass
-
-    # base64/radix64
-    try:
-        decoded = base64.b64decode(encoded, validate=True).decode('utf-8')
-        if is_english(decoded) or verbose:
-            if len(result) > 0:
-                result += '\n'
-            result += '\nBASE64\nDecoded: %s' % str(decoded)
-    except (base64.binascii.Error, UnicodeDecodeError):
-        pass
-
-    # base85/ascii85
-    try:
-        decoded = base64.a85decode(encoded).decode('utf-8')
-        if is_english(decoded) or verbose:
-            if len(result) > 0:
-                result += '\n'
-            result += '\nBASE85\nDecoded: %s' % str(decoded)
-    except (base64.binascii.Error, ValueError):
-        pass
-
     return result
 def caesar(encoded):
     result = ''
-    found = False
 
     if has_letters(encoded):
         for rotation in range(-25, 0):
             decoded = rotate(encoded, rotation)
 
             if is_english(decoded) or verbose is True:
-                if found is False:
-                    found = True
-                    result += '\nCAESAR'
-
                 if rotation >= -9:
                     result += '\nRotated %s : %s' % (rotation, decoded)
                 else:
                     result += '\nRotated %s: %s' % (rotation, decoded)
 
     return result
-def decimal_conversions(encoded, bases):
-    decoding = []
-    for number in bases:
-        encoded_number = int(encoded)
-        power = 0
+def number_conversions(encoded, original_base, bases):
+    result = ''
+
+    if len(encoded) is 0:
+        return ''
+
+    elif original_base is 16:
+        encoded.upper()
+
+        if is_hexadecimal(encoded) is False:
+            return ''
+
+    elif original_base in [32, 64, 85]:
+        try:
+            if original_base is 32:
+                return number_conversions(base64.b32decode(encoded).decode('utf-8'), 10, bases)
+            elif original_base is 64:
+                return number_conversions(base64.b64decode(encoded, validate=True).decode('utf-8'), 10, bases)
+            elif original_base is 85:
+                return number_conversions(base64.a85decode(encoded).decode('utf-8'), 10, bases)
+
+        except (base64.binascii.Error, UnicodeDecodeError, ValueError):
+            pass
+
+    for base in bases:
         decoded = ''
+        if base is 2:
+            if len(result) > 0:
+                decoded += '\n'
+                
+            decoded += 'Binary: '
 
-        while encoded_number >= number ** power:
-            power += 1
+            try:
+                for number in encoded.split():
+                    decoded += '{0:08b}'.format(int(number, original_base)) + ' '
 
-        while power >= 0:
-            if encoded_number >= number ** power:
-                times = encoded_number // (number ** power)
-                decoded += convert_hex(times)
-                encoded_number -= times * (number ** power)
+                result += decoded
+            except ValueError:
+                result += ''
+        elif base is 8:
+            if len(result) > 0:
+                result += '\n'
+                
+            decoded += 'Octal: '
+
+            try:
+                for number in encoded.split():
+                    decoded += format(int(number, original_base), 'o') + ' '
+                result += decoded
+            except ValueError:
+                result += ''
+        elif base is 10:
+            if len(result) > 0:
+                result += '\n'
+                
+            decoded += 'Decimal: '
+
+            try:
+                for number in encoded.split():
+                    decoded += str(int(number, original_base)) + ' '
+                result += decoded
+            except ValueError:
+                result += ''
+        elif base is 16:
+            if len(result) > 0:
+                result += '\n'
+                
+            decoded += 'Hexadecimal: '
+
+            try:
+                for number in encoded.split():
+                    decoded += format(int(number, original_base), 'x') + ' '
+                result += decoded
+            except ValueError:
+                result += ''
+        elif base is 'text':
+            decoded = ''
+
+            if len(result) > 0:
+                decoded += '\n'
+                
+            decoded += 'Text: '
+
+            if original_base is not 10:
+                result += decoded + number_conversions(number_conversions(encoded, original_base, [10]), 10, ['text'])
+                continue
+
+            elif is_english(encoded):
+                result += decoded + encoded
+                continue
+
             else:
-                decoded += '0'
-            power -= 1
+                encoded_list = encoded.split()
 
-        decoding.append(decoded)
-    return decoding
-def hex_conversions(encoded, bases):
-    if is_hex(encoded) is False:
-        return
+                try:
+                    for character in encoded_list:
+                        decoded += chr(int(character))
 
-    encoded_string = ''
+                    if len(decoded) is not 0 and (is_english(decoded) or verbose):
+                        if len(result) > 0:
+                            decoded += '\n'
 
-    for i in range(len(encoded) - 1, -1, -1):
-        encoded_string = encoded_string + encoded[i]
+                        result += decoded
 
-    result = 0
-    times = 0
+                except (OverflowError, ValueError):
+                    continue
 
-    for character in encoded_string:
-        result = result + (int(convert_hex(character)) * (16 ** times))
-        times += 1
+        else:
+            if len(result) > 0:
+                result += '\n'
 
-    print(decimal_conversions(result, bases))
+            try:
+                for number in encoded.split():
+                    result += str(int(number, original_base)) + ' '
+                result += decoded
+            except ValueError:
+                result += ''
+
+    return result
 def morse(encoded):
     result = ''
     decoded = ''
@@ -573,15 +605,13 @@ def reverse(encoded):
         decoded = decoded + encoded[i]
 
     if is_english(decoded) or verbose:
-        result = '\nREVERSE\nReversed: ' + decoded
+        result = '\nReversed: ' + decoded
 
     return result
 def route(encoded):
     result = ''
 
     if len(encoded) > 2:
-        found = False
-
         for key in range(2, len(encoded)):
             columns = int(math.ceil(len(encoded) / float(key)))
             rows = key
@@ -601,9 +631,6 @@ def route(encoded):
             decoded = ''.join(decoded_list)
 
             if is_english(decoded) or verbose:
-                if found is False:
-                    found = True
-                    result = '\nROUTE'
                 if key < 10:
                     result += '\nShift  %s: %s' % (key, decoded)
                 else:
@@ -682,10 +709,11 @@ def substitution(encoded):
         else:
             decoded += char
 
-    return '\nSUBSTITUTION\nDecoded: ' + decoded
+    if decoded.isalpha() is False:
+        return ''
+    else:
+        return '\nSUBSTITUTION\nDecoded: ' + decoded
 def unsure(encoded):
-    print(encoded)
-    print()
     result = ''
 
     encoded_lines = encoded.splitlines()
@@ -695,7 +723,6 @@ def unsure(encoded):
     for column in range(0, len(encoded_lines[0])):
         if has_letters(encoded_lines[0][column]):
             column_indices.append(column)
-        #matrix.append(line.split())
 
     for column_index in column_indices:
         column = []
@@ -707,158 +734,104 @@ def unsure(encoded):
                 column.append(' ')
         columns.append(column)
 
-    top_letters = encoded_lines[0].split()
-    word = anagram(top_letters)
+    top_letters = ''.join(encoded_lines[0].split())
+    anagrams = anagram(top_letters)
 
-    sorted_columns = []
+    for word in anagrams:
+        sorted_columns = []
 
-    for character in word:
-        for column in columns:
-            if column[0] is character:
-                sorted_columns.append(column)
+        for character in word:
+            for column in columns:
+                if column[0] is character:
+                    sorted_columns.append(column)
 
-    decoded = word + '\n'
+        decoded = '\n' + word + ': '
 
-    for entry in range(1, len(sorted_columns[0])):
-        for column in sorted_columns:
-            decoded += column[entry]
-    print(decoded)
-
-
-# # vigenere
-# def vigenere(encoded):
-#     print('VIGENERE')
-#
-#     for word in englishDictionary:
-#         key = re.sub('[\W_]+', '', word)
-#         if key[:len(encoded)] not in keyList:
-#             while len(key) < len(encoded):
-#                 key = key + key
-#             keyLetters = list(key.upper())
-#             keyNumbers = []
-#
-#             for x in keyLetters:
-#                 keyNumbers.append(alphaNum.get(x))
-#             vigenereOutput = ''
-#
-#             for z in list(encoded):
-#                 try:
-#                     keyNum = int(keyNumbers[0])
-#                 except IndexError:
-#                     pass
-#                 keyNum = keyNum - 1
-#                 inbetween = int(alphaNum.get(z)) - keyNum
-#                 del keyNumbers[0]
-#
-#                 if inbetween < 1:
-#                     inbetween = 26 + inbetween
-#                 vigenereOutput = vigenereOutput + numAlpha.get(str(inbetween))
-#
-#             if vigenereOutput in englishDictionary:
-#                 print('OUTPUT:', vigenereOutput)
-#                 print('KEY:', key[:len(encoded)])
-#                 print()
-#
-#                 # solutions.update({:len(encoded):vigenereOutput})
-#     if len(keyList) > 0:
-#         for keyEntry in len(keyList):
-#             print()
-#             print()
-#             print()
-#             for k, v in d.items():
-#                 print(k, v)
-#             # print('Key:', keyList[keyEntry])
-#             # print('Text:', textList[keyEntry])
-#     print()
-#
-# def printing(answer):
-#
-
-def printing(result, cipher):
-    # print(result)
-    if len(result) is 0 and len(cipher) is not 0:
-        print(cipher, 'cipher was not able to decrypt the ciphertext')
-    elif len(result) is not 0:
-        print(result)
+        for entry in range(1, len(sorted_columns[0])):
+            for column in sorted_columns:
+                decoded += column[entry]
+        result += decoded
+    return result
+def vigenere(encoded):
+    print()
 
 
+
+def printing(result, cipher, single):
+    if len(result) is not 0:
+        if single is False:
+            print('\n' + cipher.upper() + '\n' + result)
+        else:
+            print(result)
+    elif len(result) is 0 and single is True:
+        print(cipher + ' cipher was not able to decrypt the ciphertext')
+def handle_arguments(arguments):
+    if arguments.binary is True:
+        printing(number_conversions(arguments.input, 2, [8, 10, 16, 'text']), 'Binary', False)
+        
+    if arguments.octal is True:
+        printing(number_conversions(arguments.input, 8, [2, 10, 16, 'text']), 'Octal', False)
+    
+    if arguments.decimal is True:
+        printing(number_conversions(arguments.input, 10, [2, 8, 16, 'text']), 'Decimal', False)
+
+    if arguments.hexadecimal is True:
+        printing(number_conversions(arguments.input, 16, [2, 8, 10, 'text']), 'Hexadecimal', False)
+
+    if arguments.affine is True:
+        printing(affine(arguments.input), 'Affine', True)
+    
+    if arguments.bacon is True:
+        printing(bacon(arguments.input), 'Bacon', True)
+    
+    if arguments.base is True:
+        printing(number_conversions(arguments.input, 2, [8, 10, 16, 'text']), 'Binary', False)
+        printing(number_conversions(arguments.input, 8, [2, 10, 16, 'text']), 'Octal', False)
+        printing(number_conversions(arguments.input, 10, [2, 8, 16, 'text']), 'Decimal', False)
+        printing(number_conversions(arguments.input, 16, [2, 8, 10, 'text']), 'Hexadecimal', False)
+    
+    if arguments.caesar is True:
+        printing(caesar(arguments.input), 'Caesar', True)
+    
+    if arguments.morse is True:
+        printing(morse(arguments.input), 'Morse', True)
+    
+    if arguments.null is True:
+        printing(null(arguments.input), 'Null', True)
+    
+    if arguments.polybius is True:
+        printing(affine(arguments.input), 'Polybius', True)
+    
+    if arguments.reverse is True:
+        printing(reverse(arguments.input), 'Reverse', True)
+    
+    if arguments.route is True:
+        printing(route(arguments.input), 'Route', True)
+    
+    if arguments.substitution is True:
+        printing(substitution(arguments.input), 'Substitution', True)
+    
+    if True not in vars(arguments).values():
+        # printing(affine(arguments.input), 'Affine', False)
+        printing(bacon(arguments.input), 'Bacon', False)
+        printing(number_conversions(arguments.input, 10, [2, 8, 10, 16, 'text']), 'base', False)
+        printing(caesar(arguments.input), 'Caesar', False)
+        printing(morse(arguments.input), 'Morse', False)
+        printing(morse_encoder(arguments.input), 'Morse Encoder', False)
+        printing(morse_converter(arguments.input), 'Morse Converter', False)
+        printing(null(arguments.input), 'Null', False)
+        printing(reverse(arguments.input), 'Reverse', False)
+        printing(route(arguments.input), 'Route', False)
+        printing(substitution(arguments.input), 'Substitution', False)
 def main():
-    input = 'H I L O P S\n' \
-            'l u e h t r\n' \
-            'o t a h t y\n' \
-            't n a w u t\n' \
-            's y r t o i\n' \
-            ': p t t h s\n' \
-            '. o g / / o\n' \
-            '1 r / l g O\n' \
-            '    x R y'
+    arguments = process_arguments()
+    global verbose
+    verbose = arguments.v
+    setup_dictionary()
+    setup_patterns()
+    print('Input:', arguments.input)
 
-    setup_dictionary2()
-    # arguments = process_arguments()
-    # argument = False
-
-    # global verbose
-    # verbose = arguments.verbose
-
-    # print('Input:', arguments.input)
-    #
-    #
-    #
-    # if arguments.affine is True:
-    #     setup_dictionary()
-    #     printing(affine(arguments.input), 'Affine')
-    #     argument = True
-    # if arguments.bacon is True:
-    #     setup_dictionary()
-    #     printing(bacon(arguments.input), 'Bacon')
-    #     argument = True
-    # if arguments.base is True:
-    #     setup_dictionary()
-    #     printing(base(arguments.input), 'Base')
-    #     argument = True
-    # if arguments.caesar is True:
-    #     setup_dictionary()
-    #     printing(caesar(arguments.input), 'Caesar')
-    #     argument = True
-    # if arguments.morse is True:
-    #     setup_dictionary()
-    #     printing(morse(arguments.input), 'Morse')
-    #     argument = True
-    # if arguments.null is True:
-    #     setup_dictionary()
-    #     printing(null(arguments.input), 'Null')
-    #     argument = True
-    # if arguments.polybius is True:
-    #     setup_dictionary()
-    #     printing(affine(arguments.input), 'Polybius')
-    #     argument = True
-    # if arguments.reverse is True:
-    #     setup_dictionary()
-    #     printing(reverse(arguments.input), 'Reverse')
-    #     argument = True
-    # if arguments.route is True:
-    #     setup_dictionary()
-    #     printing(route(arguments.input), 'Route')
-    #     argument = True
-    # if arguments.sub is True:
-    #     setup_dictionary()
-    #     setup_patterns()
-    #     printing(substitution(arguments.input), 'Substitution')
-    #     argument = True
-    # if argument is False:
-    #     setup_dictionary()
-    #     setup_patterns()
-    #
-    #     # printing(affine(arguments.input), '')
-    #     printing(bacon(arguments.input), '')
-    #     printing(base(arguments.input), '')
-    #     printing(caesar(arguments.input), '')
-    #     printing(morse(arguments.input), '')
-    #     printing(null(arguments.input), '')
-    #     printing(reverse(arguments.input), '')
-    #     printing(route(arguments.input), '')
-    #     printing(substitution(arguments.input), '')
-
+    handle_arguments(arguments)
 
 if __name__ == '__main__':
     main()
